@@ -15,12 +15,17 @@ import numpy as np
 import pandas as pd
 
 from . import db
+from .config import WIKI_GLOBAL_REGION
 from .score import HORIZON, score_wikipedia, wiki_panel
 
 
 def backtest_wikipedia(k: int = 20, horizon: int = HORIZON, con=None, snaps: pd.DataFrame | None = None,
-                       min_ratio: float = 1.5) -> dict:
+                       min_ratio: float = 1.5, region: str = WIKI_GLOBAL_REGION) -> dict:
+    """`region`: "en" for the worldwide list (default) or a country code. Each region's top
+    list is its own history; mixing them would blend different audiences into one series."""
     snaps = snaps if snaps is not None else db.load(con or db.connect(), "wikipedia")
+    if "region" in snaps:
+        snaps = snaps[snaps["region"] == region]
     panel = wiki_panel(snaps, horizon=horizon)
     days = sorted(panel["period"].unique())
     rows = []

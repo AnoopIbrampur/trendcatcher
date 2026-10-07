@@ -26,6 +26,7 @@ def main(argv=None) -> int:
     s = sub.add_parser("backtest", help="evaluate the Wikipedia scorer on stored history")
     s.add_argument("--k", type=int, default=20)
     s.add_argument("--horizon", type=int, default=3)
+    s.add_argument("--region", default="en", help="'en' (worldwide list) or a country code like US, IN")
 
     s = sub.add_parser("serve", help="run the web app")
     s.add_argument("--port", type=int, default=8517)
@@ -57,8 +58,8 @@ def main(argv=None) -> int:
             print(clusters[cols].head(a.n).to_string(index=False))
     elif a.cmd == "backtest":
         from .evaluate import backtest_wikipedia
-        res = backtest_wikipedia(k=a.k, horizon=a.horizon)
-        print(f"walk-forward over {res['summary'].attrs.get('n_days', 0)} days")
+        res = backtest_wikipedia(k=a.k, horizon=a.horizon, region=a.region)
+        print(f"{a.region}: walk-forward over {res['summary'].attrs.get('n_days', 0)} days")
         print(res["summary"].to_string())
     elif a.cmd == "serve":
         import uvicorn

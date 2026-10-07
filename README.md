@@ -55,7 +55,23 @@ hot; it does not tell you the topic is still early. Most of the signal is the br
 itself, and the model adds about 5 points on top of it. The first label I tried
 (keep-rising) was the wrong question, and the backtest is what showed that.
 
-Reproduce: `python -m trendcatcher backtest`
+**Per country** (each country's own Wikipedia most-viewed list, same method):
+
+| Region | Days tested | Trend Catcher | Breakout ratio alone | Most viewed | Random |
+|---|---|---|---|---|---|
+| Worldwide (English) | 41 | **75.6%** | 71.0% | 54.4% | 24.7% |
+| United States | 42 | **71.8%** | 63.8% | 56.1% | 22.7% |
+| United Kingdom | 43 | **70.3%** | 65.2% | 56.0% | 20.0% |
+| India | 36 | **83.1%** | 79.6% | 40.6% | 34.7% |
+| Canada | 22 | **54.5%** | 51.1% | 44.5% | 24.2% |
+| Australia | 8 | **45.6%** | 37.5% | 40.0% | 23.6% |
+
+The model wins in every region, and its lead over the plain breakout ratio is larger for
+countries (+4 to +8 points) than for the worldwide list. Canada and Australia have short
+lists, so the model only has enough training rows on a few days: treat those rows as
+indicative, not proven.
+
+Reproduce: `python -m trendcatcher backtest --region US` (or `en`, `GB`, `IN`, `CA`, `AU`)
 
 ## Data sources: what actually works (Oct 2026)
 
