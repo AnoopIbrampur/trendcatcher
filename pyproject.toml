@@ -1,0 +1,18 @@
+[project]
+name = "trendcatcher"
+version = "0.1.0"
+description = "Find rising cross-platform trends early enough for creators to act on them."
+requires-python = ">=3.11"
+dependencies = ["requests", "pandas", "scikit-learn", "streamlit", "wordninja"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+trendcatcher = "trendcatcher.cli:main"
+
+[tool.setuptools]
+packages = ["trendcatcher", "trendcatcher.sources"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
