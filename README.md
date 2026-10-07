@@ -7,6 +7,11 @@ Finds topics that are taking off across TikTok, YouTube, Google search and Wikip
 for a short-form creator (Reels / TikTok / Shorts) to still post about them, and turns
 each one into a brief: what it is, whether it's brand-safe, and three video angles.
 
+![Demo: filtering the feed, opening a trend with its video brief, and switching to New York's local trends](docs/demo.gif)
+
+**[Read the case study →](docs/case-study.md)** How a backtest showed the first scorer was
+answering the wrong question, and what fixed it.
+
 ```
 sources (hourly)            score (per source)               merge                     brief
 TikTok Creative Center ─┐   momentum, saturation,            embeddings for recall,    local LLM, grounded
