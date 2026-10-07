@@ -72,7 +72,8 @@ python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 .venv/bin/python -m trendcatcher ingest            # fetch every source that's due
 .venv/bin/python -m trendcatcher backfill-wiki --days 60
 .venv/bin/python -m trendcatcher top               # mixed feed in the terminal
-.venv/bin/streamlit run trendcatcher/dashboard.py  # dashboard + "generate video angles"
+.venv/bin/python -m trendcatcher serve             # web app on http://localhost:8517
+.venv/bin/streamlit run trendcatcher/dashboard.py  # older Streamlit dashboard (same features)
 .venv/bin/python -m trendcatcher status            # collection health
 scripts/schedule.sh install                        # hourly launchd job (uninstall to remove)
 .venv/bin/python -m pytest
@@ -81,6 +82,20 @@ scripts/schedule.sh install                        # hourly launchd job (uninsta
 Video briefs and cross-platform merging need [Ollama](https://ollama.com) with
 `nomic-embed-text` and `qwen3.5:9b`. Without it, merging falls back to exact lexical
 matches and the brief button is disabled.
+
+## The app
+
+`python -m trendcatcher serve` starts a FastAPI server (`trendcatcher/web/server.py`) and a
+hand-built single-page front end (`trendcatcher/web/static/index.html`, no build step and no
+framework). The design follows Apple's interface guidelines:
+- **Filters run in the browser.** They respond on press, with no server round trip.
+- **Animations are interruptible springs.** Card expansion, popovers and the tab indicator
+  start from their current on-screen value, so tapping a card again mid-animation reverses it smoothly.
+- **The chrome is translucent.** The header and popovers blur the content scrolling underneath them.
+- **Typography:** tracking changes with font size.
+- **Modes:** light and dark, plus `prefers-reduced-motion`, `-transparency` and `-contrast` support.
+
+Every location has a shareable link (`/?location=US-NY`, `/?tab=health`).
 
 ## Design notes
 

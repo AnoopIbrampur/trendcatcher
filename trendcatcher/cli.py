@@ -27,6 +27,10 @@ def main(argv=None) -> int:
     s.add_argument("--k", type=int, default=20)
     s.add_argument("--horizon", type=int, default=3)
 
+    s = sub.add_parser("serve", help="run the web app")
+    s.add_argument("--port", type=int, default=8517)
+    s.add_argument("--host", default="127.0.0.1")
+
     s = sub.add_parser("status", help="collection health")
 
     a = p.parse_args(argv)
@@ -56,6 +60,10 @@ def main(argv=None) -> int:
         res = backtest_wikipedia(k=a.k, horizon=a.horizon)
         print(f"walk-forward over {res['summary'].attrs.get('n_days', 0)} days")
         print(res["summary"].to_string())
+    elif a.cmd == "serve":
+        import uvicorn
+        print(f"Trend Catcher on http://{a.host}:{a.port}")
+        uvicorn.run("trendcatcher.web.server:app", host=a.host, port=a.port, log_level="warning")
     elif a.cmd == "status":
         from . import db
         con = db.connect()
