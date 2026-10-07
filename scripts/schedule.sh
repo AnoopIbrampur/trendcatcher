@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Install / remove an hourly macOS launchd job that runs `python -m trendcatcher ingest`.
-# Each source has its own minimum interval, so running hourly is safe.
+# Install / remove an hourly macOS launchd job. By default it runs `sync`, which pulls
+# what the cloud collector (GitHub Actions) gathered. MODE=ingest collects locally instead,
+# which only works while the Mac is awake.
 #   scripts/schedule.sh install | uninstall | status
 set -euo pipefail
 LABEL="com.trendcatcher.ingest"
+MODE="${MODE:-sync}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 
@@ -16,7 +18,7 @@ case "${1:-}" in
 <plist version="1.0"><dict>
   <key>Label</key><string>$LABEL</string>
   <key>ProgramArguments</key><array>
-    <string>$ROOT/.venv/bin/python</string><string>-m</string><string>trendcatcher</string><string>ingest</string>
+    <string>$ROOT/.venv/bin/python</string><string>-m</string><string>trendcatcher</string><string>$MODE</string>
   </array>
   <key>WorkingDirectory</key><string>$ROOT</string>
   <key>StartInterval</key><integer>3600</integer>
@@ -27,7 +29,7 @@ case "${1:-}" in
 PLIST
     launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
     launchctl bootstrap "gui/$(id -u)" "$PLIST"
-    echo "installed: runs hourly, logs at $ROOT/data/logs/ingest.log"
+    echo "installed: runs '$MODE' hourly, logs at $ROOT/data/logs/ingest.log"
     ;;
   uninstall)
     launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true

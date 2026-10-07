@@ -28,6 +28,18 @@ def main(argv=None) -> int:
     s.add_argument("--horizon", type=int, default=3)
     s.add_argument("--region", default="en", help="'en' (worldwide list) or a country code like US, IN")
 
+    s = sub.add_parser("collect", help="cloud mode: fetch due sources and write files to a store")
+    s.add_argument("--store", required=True)
+    g = s.add_mutually_exclusive_group(required=True)
+    g.add_argument("--sources", nargs="+")
+    g.add_argument("--auto", action="store_true", help="run whatever is due this UTC hour")
+
+    s = sub.add_parser("sync", help="pull the cloud data branch and import new files")
+    s.add_argument("--no-pull", action="store_true", help="import the local store copy without fetching")
+
+    s = sub.add_parser("seed-store", help="one-off: export the local database into a store directory")
+    s.add_argument("--store", required=True)
+
     s = sub.add_parser("serve", help="run the web app")
     s.add_argument("--port", type=int, default=8517)
     s.add_argument("--host", default="127.0.0.1")
@@ -61,6 +73,23 @@ def main(argv=None) -> int:
         res = backtest_wikipedia(k=a.k, horizon=a.horizon, region=a.region)
         print(f"{a.region}: walk-forward over {res['summary'].attrs.get('n_days', 0)} days")
         print(res["summary"].to_string())
+    elif a.cmd == "collect":
+        from datetime import datetime, timezone
+        from pathlib import Path
+        from .cloud import collect, due_sources
+        sources = a.sources or due_sources(datetime.now(timezone.utc).hour)
+        print("due:", " ".join(sources))
+        for name, (status, n) in collect(Path(a.store), sources).items():
+            print(f"{name:14s} {status:8s} {n}")
+    elif a.cmd == "sync":
+        from .cloud import sync
+        r = sync(pull=not a.no_pull)
+        print(f"imported {r['files']} files ({r['rows']} rows) and {r['runs']} run records")
+    elif a.cmd == "seed-store":
+        from pathlib import Path
+        from . import db
+        from .cloud import seed
+        print(f"wrote {seed(db.connect(), Path(a.store))} files")
     elif a.cmd == "serve":
         import uvicorn
         print(f"Trend Catcher on http://{a.host}:{a.port}")

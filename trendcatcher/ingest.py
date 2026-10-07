@@ -17,10 +17,14 @@ def is_due(con, name: str, force: bool) -> bool:
     return last is None or datetime.now(timezone.utc) - last >= timedelta(hours=MIN_INTERVAL_HOURS[name]) - timedelta(minutes=5)
 
 
-def run_source(con, src) -> tuple[str, int]:
+def run_source(con, src, have: dict[str, set[str]] | None = None) -> tuple[str, int]:
+    """`have`: Wikipedia (region -> stored dates) to skip; defaults to what's in `con`."""
     run_id = db.start_run(con, src.name)
     try:
-        items = src.fetch(have=db.periods_by_region(con, "wikipedia")) if isinstance(src, Wikipedia) else src.fetch()
+        if isinstance(src, Wikipedia):
+            items = src.fetch(have=have if have is not None else db.periods_by_region(con, "wikipedia"))
+        else:
+            items = src.fetch()
         n = db.insert_items(con, run_id, items)
         db.finish_run(con, run_id, "ok", n)
         return "ok", n
