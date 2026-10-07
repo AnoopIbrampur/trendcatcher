@@ -34,7 +34,48 @@ MIN_INTERVAL_HOURS = {
     "reddit": 1,
 }
 
-TIKTOK_COUNTRIES = ["US", "GB", "CA", "AU"]
+# ---- Locations
+# Country level works on every source; US states only on Google Trends; no source exposes
+# city/metro level (Google's DMA geos like US-NY-501 return nothing).
+COUNTRIES = {
+    "US": "United States",
+    "GB": "United Kingdom",
+    "CA": "Canada",
+    "AU": "Australia",
+    "IN": "India",
+}
+US_STATES = {
+    "AL": "Alabama", "AK": "Alaska", "AZ": "Arizona", "AR": "Arkansas", "CA": "California", "CO": "Colorado",
+    "CT": "Connecticut", "DE": "Delaware", "DC": "District of Columbia", "FL": "Florida", "GA": "Georgia",
+    "HI": "Hawaii", "ID": "Idaho", "IL": "Illinois", "IN": "Indiana", "IA": "Iowa", "KS": "Kansas",
+    "KY": "Kentucky", "LA": "Louisiana", "ME": "Maine", "MD": "Maryland", "MA": "Massachusetts",
+    "MI": "Michigan", "MN": "Minnesota", "MS": "Mississippi", "MO": "Missouri", "MT": "Montana",
+    "NE": "Nebraska", "NV": "Nevada", "NH": "New Hampshire", "NJ": "New Jersey", "NM": "New Mexico",
+    "NY": "New York", "NC": "North Carolina", "ND": "North Dakota", "OH": "Ohio", "OK": "Oklahoma",
+    "OR": "Oregon", "PA": "Pennsylvania", "RI": "Rhode Island", "SC": "South Carolina", "SD": "South Dakota",
+    "TN": "Tennessee", "TX": "Texas", "UT": "Utah", "VT": "Vermont", "VA": "Virginia", "WA": "Washington",
+    "WV": "West Virginia", "WI": "Wisconsin", "WY": "Wyoming",
+}
+
+
+def location_name(code: str | None) -> str:
+    if not code:
+        return "Global"
+    if code.startswith("US-"):
+        return f"{US_STATES.get(code[3:], code[3:])}, US"
+    return COUNTRIES.get(code, code)
+
+
+def parent_location(code: str) -> str | None:
+    """US-NY -> US; a country has no parent."""
+    return "US" if code.startswith("US-") else None
+
+
+# Countries TikTok Creative Center serves hashtag trends for (from its frontend bundle).
+# India is absent: TikTok is banned there.
+TIKTOK_SUPPORTED = {"US", "FR", "DE", "IT", "ES", "GB", "AR", "AU", "BR", "CA", "CO", "EG", "ID", "IL", "JP",
+                    "KR", "MY", "MX", "PH", "SA", "SG", "ZA", "TW", "TH", "TR", "AE", "VN"}
+TIKTOK_COUNTRIES = [c for c in COUNTRIES if c in TIKTOK_SUPPORTED]
 # Industry filter IDs and labels, taken from TikTok Creative Center's own frontend bundle.
 # Anonymous requests return only the top 3 hashtags per query, so sweeping industries
 # is how we get breadth (~50 hashtags per country).
@@ -56,8 +97,13 @@ TIKTOK_INDUSTRIES = {
     "29000000000": "Health",
 }
 
-GOOGLE_TRENDS_GEOS = ["US", "GB", "CA", "AU"]
-YOUTUBE_REGIONS = ["US"]
+GOOGLE_TRENDS_GEOS = list(COUNTRIES) + [f"US-{s}" for s in US_STATES]
+YOUTUBE_REGIONS = list(COUNTRIES)
+WIKI_COUNTRIES = list(COUNTRIES)
+# Per-country Wikipedia lists mix projects; keep English plus the local-language wiki.
+WIKI_PROJECTS = {"IN": ["en.wikipedia", "hi.wikipedia"]}
+WIKI_DEFAULT_PROJECTS = ["en.wikipedia"]
+WIKI_GLOBAL_REGION = "en"  # the worldwide English top list (no country)
 
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
 EMBED_MODEL = "nomic-embed-text"

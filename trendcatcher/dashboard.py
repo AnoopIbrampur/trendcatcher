@@ -6,16 +6,20 @@ import streamlit as st
 
 from trendcatcher import db, llm
 from trendcatcher.angles import brief
+from trendcatcher.config import COUNTRIES, US_STATES, location_name
 from trendcatcher.pipeline import build, mixed_feed
 
 st.set_page_config(page_title="Trend Catcher", layout="wide")
 
 
 @st.cache_data(ttl=600, show_spinner="Scoring trends...")
-def load():
+def load(location):
     con = db.connect()
-    clusters, items = build(con)
+    clusters, items = build(con, location=location)
     return mixed_feed(clusters), items
+
+
+LOCATIONS = [None, *COUNTRIES, *(f"US-{s}" for s in sorted(US_STATES, key=US_STATES.get))]
 
 
 def fmt_num(x) -> str:
@@ -27,32 +31,48 @@ def fmt_num(x) -> str:
     return f"{x:.0f}"
 
 
-clusters, items = load()
 st.title("Trend Catcher")
+# ?location=US-NY makes a shareable link per place
+requested = st.query_params.get("location")
+location = st.selectbox("Location", LOCATIONS, format_func=location_name,
+                        index=LOCATIONS.index(requested) if requested in LOCATIONS else 0,
+                        help="Country data comes from every source. US states only have Google search data; "
+                             "the other sources fall back to US national.")
+if location:
+    st.query_params["location"] = location
+elif "location" in st.query_params:
+    del st.query_params["location"]
+clusters, items = load(location)
 st.caption("Rising topics across TikTok, YouTube, Google search and Wikipedia, ranked by how likely they are to stay hot long enough to post about.")
 
 tab_feed, tab_health = st.tabs(["Feed", "Collection health"])
 
 with tab_feed:
-    c1, c2, c3, c4 = st.columns([2, 2, 3, 2])
-    stages = c1.multiselect("Stage", ["emerging", "peaking", "fading", "unknown"], default=["emerging", "peaking"])
-    sources = c2.multiselect("Source", sorted({s for ss in clusters["sources"] for s in ss.split(", ")}))
+    c1, c2, c3, c4, c5 = st.columns([3, 2, 3, 2, 1.4])
+    stages = c1.multiselect("Stage", ["emerging", "peaking", "fading", "unknown"], default=["emerging", "peaking"],
+                            key="f_stage")
+    sources = c2.multiselect("Source", sorted({s for ss in clusters["sources"] for s in ss.split(", ")}), key="f_source")
     cats = sorted({c for cs in clusters["category"] for c in cs.split(", ") if c})
-    cat = c3.multiselect("Category", cats)
-    min_score = c4.slider("Min score", 0, 100, 40)
+    cat = c3.multiselect("Category", cats, key="f_cat")
+    min_score = c4.slider("Min score", 0, 100, 40, key="f_score")
+    only_local = c5.toggle("Local only", disabled=location is None, key="f_local",
+                           help="Trending here but not nationally / in other countries")
 
     view = clusters[clusters["stage"].isin(stages) & (clusters["score"] >= min_score)]
     if sources:
         view = view[view["sources"].map(lambda s: any(x in s for x in sources))]
     if cat:
         view = view[view["category"].map(lambda s: any(x in s for x in cat))]
-    st.write(f"**{len(view)}** trends")
+    if only_local:
+        view = view[view["local"]]
+    st.write(f"**{len(view)}** trends in {location_name(location)}" + (f" · {int(view['local'].sum())} local" if location else ""))
 
     ollama_up = llm.available()
     for _, row in view.head(60).iterrows():
         badge = " · ".join(row["sources"].split(", "))
-        with st.expander(f"**{row['label']}**  —  {row['score']:.0f}  ·  {row['stage']}  ·  {badge}",
-                         key=f"exp-{row['cluster_key']}"):
+        pin = "  ·  :orange[local]" if row.get("local") else ""
+        with st.expander(f"**{row['label']}**  —  {row['score']:.0f}  ·  {row['stage']}  ·  {badge}{pin}",
+                         key=f"exp-{location}-{row['cluster_key']}"):
             members = items[items["cluster"] == row["cluster"]]
             left, right = st.columns([3, 2])
             with left:
@@ -78,12 +98,13 @@ with tab_feed:
                         st.markdown(f"[{it['title']}]({it['url']}) — {it['source']}")
             with right:
                 con = db.connect()
-                cached = con.execute("SELECT body FROM angles WHERE cluster_key=?", (row["cluster_key"],)).fetchone()
+                bkey = row["cluster_key"] + (f"@{location}" if location else "")
+                cached = con.execute("SELECT body FROM angles WHERE cluster_key=?", (bkey,)).fetchone()
                 b = json.loads(cached[0]) if cached else None
-                if b is None and st.button("Generate video angles", key=f"gen-{row['cluster_key']}", disabled=not ollama_up,
+                if b is None and st.button("Generate video angles", key=f"gen-{location}-{row['cluster_key']}", disabled=not ollama_up,
                                            help=None if ollama_up else "Start Ollama to enable"):
                     with st.spinner("Asking the local model..."):
-                        b = brief(row, items, con)
+                        b = brief(row, items, con, location=location)
                 if b:
                     st.markdown(f"**What it is:** {b.get('what_it_is')}")
                     st.markdown(f"**Creator fit:** {b.get('creator_fit')}/10 · **Brand safety:** {b.get('brand_safety')}"

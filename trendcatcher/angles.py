@@ -12,7 +12,7 @@ import pandas as pd
 import requests
 
 from . import db, llm
-from .config import LLM_MODEL, USER_AGENT
+from .config import LLM_MODEL, USER_AGENT, location_name
 
 SUMMARY_URL = "https://en.wikipedia.org/api/rest_v1/page/summary/{}"
 
@@ -32,6 +32,7 @@ label is ambiguous and the evidence does not explain it (an unfamiliar name, sla
 in-joke), set "what_it_is" to "unclear". Never invent events, people's actions, quotes,
 or the reason something is in the news.
 
+Audience location: {location}{local_note}
 Trend label: {label}
 Lifecycle stage (from our metrics): {stage}
 Note: TikTok's industry tag hints at what a hashtag is about. If items in the evidence seem to
@@ -84,15 +85,19 @@ def evidence_for(cluster_row: pd.Series, items: pd.DataFrame) -> str:
     return "\n".join(lines[:15])
 
 
-def brief(cluster_row: pd.Series, items: pd.DataFrame, con=None, refresh: bool = False) -> dict:
+def brief(cluster_row: pd.Series, items: pd.DataFrame, con=None, refresh: bool = False,
+          location: str | None = None) -> dict:
     con = con or db.connect()
-    key = cluster_row["cluster_key"]
+    key = cluster_row["cluster_key"] + (f"@{location}" if location else "")
     if not refresh:
         row = con.execute("SELECT body FROM angles WHERE cluster_key=?", (key,)).fetchone()
         if row:
             return json.loads(row[0])
+    local_note = (" (this trend is specific to this location; angles should speak to a local audience)"
+                  if location and cluster_row.get("local") else "")
     prompt = PROMPT.format(label=cluster_row["label"], stage=cluster_row["stage"], sources=cluster_row["sources"],
-                           evidence=evidence_for(cluster_row, items))
+                           evidence=evidence_for(cluster_row, items), location=location_name(location),
+                           local_note=local_note)
     out = llm.generate_json(prompt)
     con.execute("INSERT OR REPLACE INTO angles (cluster_key, created_at, model, body) VALUES (?, ?, ?, ?)",
                 (key, db.utcnow(), LLM_MODEL, json.dumps(out)))

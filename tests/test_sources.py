@@ -91,3 +91,28 @@ def test_keyless_sources_skip(monkeypatch):
         youtube.YouTube().fetch()
     with pytest.raises(SourceSkipped):
         reddit.Reddit().fetch()
+
+
+def test_wikipedia_country_keeps_local_projects_and_drops_namespaces():
+    allv = {"items": [{"articles": [
+        {"article": "Drishyam:_The_Conclusion", "project": "en.wikipedia", "views_ceil": 175300, "rank": 1},
+        {"article": "विशेष:खोज", "project": "hi.wikipedia", "views_ceil": 50000, "rank": 2},
+        {"article": "घोड़ा", "project": "hi.wikipedia", "views_ceil": 9000, "rank": 3},
+        {"article": "Main_Page", "project": "commons.wikimedia", "views_ceil": 8000, "rank": 4},
+        {"article": "Hund", "project": "de.wikipedia", "views_ceil": 1100, "rank": 5},
+    ]}]}
+    items = wikipedia.parse_country(allv, None, date(2026, 10, 5), "IN")
+    assert [i.key for i in items] == ["Drishyam:_The_Conclusion", "hi.wikipedia|घोड़ा"]
+    assert all(i.region == "IN" for i in items)
+    assert items[1].url == "https://hi.wikipedia.org/wiki/घोड़ा"
+    assert items[0].extra["list_cutoff"] == 1100
+    # US keeps English only
+    assert [i.key for i in wikipedia.parse_country(allv, None, date(2026, 10, 5), "US")] == ["Drishyam:_The_Conclusion"]
+
+
+def test_location_config():
+    from trendcatcher.config import GOOGLE_TRENDS_GEOS, TIKTOK_COUNTRIES, location_name, parent_location
+    assert "US-NY" in GOOGLE_TRENDS_GEOS and "IN" in GOOGLE_TRENDS_GEOS
+    assert "IN" not in TIKTOK_COUNTRIES  # TikTok is banned in India
+    assert location_name("US-NY") == "New York, US" and location_name(None) == "Global"
+    assert parent_location("US-CA") == "US" and parent_location("GB") is None

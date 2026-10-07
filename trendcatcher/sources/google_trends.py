@@ -1,5 +1,6 @@
 """Google Trends 'trending now' RSS feed."""
 import re
+import time
 import xml.etree.ElementTree as ET
 from email.utils import parsedate_to_datetime
 
@@ -64,4 +65,5 @@ class GoogleTrends:
             r = self.http.get(URL.format(geo=geo), timeout=30)
             r.raise_for_status()
             out += parse(r.text, geo)
+            time.sleep(0.3)  # 56 geos per run; stay polite
         return out

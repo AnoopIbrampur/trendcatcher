@@ -104,3 +104,42 @@ def test_db_roundtrip(tmp_path):
     assert df.loc[0, "curve"] == [1, 2] and df.loc[0, "extra"] == {"a": 1}
     assert db.last_ok(con, "tiktok") is not None
     assert db.periods(con, "tiktok") == {"2026-10-06"}
+
+
+def _geo_snaps():
+    today = date.today().isoformat()
+    rows = []
+    def add(region, key):
+        rows.append({"region": region, "key": key, "period": today})
+    for k in ["national story"]:
+        add("US", k)
+    add("US-NY", "sabres score"); add("US-NY", "national story"); add("US-NY", "regional thing")
+    for st in ["US-NJ", "US-CT"]:
+        add(st, "regional thing")
+    for st in ["US-CA", "US-TX", "US-FL", "US-IL", "US-OH"]:
+        add(st, "everywhere but national")
+    add("US-NY", "everywhere but national")
+    add("GB", "uk only"); add("GB", "shared"); add("US", "shared")
+    return pd.DataFrame(rows)
+
+
+def test_is_local_state_and_country():
+    from trendcatcher.pipeline import is_local
+    snaps = _geo_snaps()
+    keys = pd.Series(["sabres score", "national story", "regional thing", "everywhere but national"])
+    local = is_local("google_trends", "US-NY", keys, snaps).tolist()
+    assert local == [True, False, True, False]  # regional (2 other states) ok; 5 other states is not local
+    assert not is_local("wikipedia", "US-NY", keys, snaps).any()  # other sources are national in a state view
+    assert is_local("tiktok", "GB", pd.Series(["uk only", "shared"]), snaps).tolist() == [True, False]
+    assert not is_local("tiktok", None, pd.Series(["uk only"]), snaps).any()
+
+
+def test_region_snaps_global_excludes_states_and_country_wiki():
+    from trendcatcher.pipeline import region_snaps
+    df = pd.DataFrame({"region": ["US", "US-NY", "GB"], "key": ["a", "b", "c"]})
+    assert region_snaps("google_trends", df, None)["key"].tolist() == ["a", "c"]
+    assert region_snaps("google_trends", df, "US-NY")["key"].tolist() == ["b"]
+    assert region_snaps("tiktok", df, "US-NY")["key"].tolist() == ["a"]  # falls back to national
+    w = pd.DataFrame({"region": ["en", "US"], "key": ["global", "us"]})
+    assert region_snaps("wikipedia", w, None)["key"].tolist() == ["global"]
+    assert region_snaps("wikipedia", w, "US")["key"].tolist() == ["us"]

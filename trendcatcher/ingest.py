@@ -20,7 +20,7 @@ def is_due(con, name: str, force: bool) -> bool:
 def run_source(con, src) -> tuple[str, int]:
     run_id = db.start_run(con, src.name)
     try:
-        items = src.fetch(have=db.periods(con, "wikipedia")) if isinstance(src, Wikipedia) else src.fetch()
+        items = src.fetch(have=db.periods_by_region(con, "wikipedia")) if isinstance(src, Wikipedia) else src.fetch()
         n = db.insert_items(con, run_id, items)
         db.finish_run(con, run_id, "ok", n)
         return "ok", n
@@ -46,18 +46,19 @@ def ingest(only: list[str] | None = None, force: bool = False, con=None) -> dict
     return results
 
 
-def backfill_wikipedia(days: int, con=None) -> int:
+def backfill_wikipedia(days: int, con=None, regions: list[str] | None = None) -> int:
     con = con or db.connect()
     src = Wikipedia()
-    have = db.periods(con, "wikipedia")
-    todo = [d for d in (date.today() - timedelta(days=i) for i in range(days, 0, -1)) if d.isoformat() not in have]
     total = 0
-    for d in todo:
-        run_id = db.start_run(con, "wikipedia")
-        try:
-            n = db.insert_items(con, run_id, src.fetch_day(d))
-            db.finish_run(con, run_id, "ok", n, f"backfill {d}")
-            total += n
-        except Exception as e:
-            db.finish_run(con, run_id, "error", 0, f"backfill {d}: {e}")
+    for region in regions or src.regions():
+        have = db.periods(con, "wikipedia", region)
+        todo = [d for d in (date.today() - timedelta(days=i) for i in range(days, 0, -1)) if d.isoformat() not in have]
+        for d in todo:
+            run_id = db.start_run(con, "wikipedia")
+            try:
+                n = db.insert_items(con, run_id, src.fetch_day(d, region))
+                db.finish_run(con, run_id, "ok", n, f"backfill {region} {d}")
+                total += n
+            except Exception as e:
+                db.finish_run(con, run_id, "error", 0, f"backfill {region} {d}: {e}")
     return total

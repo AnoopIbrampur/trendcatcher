@@ -12,6 +12,24 @@ Wikipedia pageviews ────┤   Wikipedia: learned p(stays hot)  precision
 YouTube (API key) ───────┘
 ```
 
+## Locations
+
+Pick a country or a US state in the dashboard (or link straight to `?location=US-NY`), or
+use `python -m trendcatcher top --location US-NY --local` in the terminal.
+
+| Level | Google Trends | TikTok | YouTube | Wikipedia |
+|---|---|---|---|---|
+| Country (US, GB, CA, AU, IN) | ✓ | ✓ (not India: TikTok is banned there) | ✓ | ✓ per-country top list |
+| US state (50 + DC) | ✓ | national fallback | national fallback | national fallback |
+| City / metro | ✗ (Google's metro geos return nothing) | ✗ | ✗ | ✗ |
+
+**Local** trends are what's specific to a place:
+- **Country:** not trending in any other tracked country.
+- **US state:** not in the US national list, and trending in no more than 3 other states.
+
+The first version only checked against the national list, and nearly every state item came
+out "local", because Google's national list holds just ~10 items. Local trends are listed first.
+
 ## Results so far
 
 The useful question for a creator isn't "is this big?" but **"will there still be an

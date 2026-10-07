@@ -113,6 +113,7 @@ def summarize(items: pd.DataFrame, cross_bonus: float = 8.0) -> pd.DataFrame:
             "n_items": len(g),
             "category": ", ".join(sorted({c for cs in g["category"].dropna() for c in cs.split(", ") if c})),
             "led_by": firsts.idxmin() if len(firsts) > 1 else "",
+            "local": bool(g["local"].fillna(False).any()) if "local" in g else False,
             "members": g["title"].tolist(),
         })
     return pd.DataFrame(rows).sort_values(["score", "n_sources"], ascending=False).reset_index(drop=True)

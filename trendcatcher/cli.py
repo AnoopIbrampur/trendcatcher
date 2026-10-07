@@ -14,11 +14,14 @@ def main(argv=None) -> int:
 
     s = sub.add_parser("backfill-wiki", help="load past Wikipedia daily tops")
     s.add_argument("--days", type=int, default=60)
+    s.add_argument("--regions", nargs="*", help="'en' (worldwide) and/or country codes; default all")
 
     s = sub.add_parser("top", help="print the current top trends")
     s.add_argument("-n", type=int, default=25)
     s.add_argument("--no-cluster", action="store_true", help="skip embedding-based cross-platform merge")
     s.add_argument("--by-score", action="store_true", help="global score sort instead of the mixed feed")
+    s.add_argument("--location", help="country code (US, GB, IN...) or US state (US-NY); default global")
+    s.add_argument("--local", action="store_true", help="only trends local to --location")
 
     s = sub.add_parser("backtest", help="evaluate the Wikipedia scorer on stored history")
     s.add_argument("--k", type=int, default=20)
@@ -35,12 +38,16 @@ def main(argv=None) -> int:
             print(f"{name:14s} {status:8s} {n}")
     elif a.cmd == "backfill-wiki":
         from .ingest import backfill_wikipedia
-        print(f"stored {backfill_wikipedia(a.days)} wikipedia rows")
+        print(f"stored {backfill_wikipedia(a.days, regions=a.regions)} wikipedia rows")
     elif a.cmd == "top":
         from .pipeline import build, mixed_feed
-        clusters, _ = build(cluster=not a.no_cluster)
+        from .config import location_name
+        clusters, _ = build(cluster=not a.no_cluster, location=a.location)
         clusters = clusters if a.by_score else mixed_feed(clusters)
-        cols = ["score", "stage", "label", "sources", "n_items", "category"]
+        if a.local:
+            clusters = clusters[clusters["local"]]
+        print(f"Trends for {location_name(a.location)}")
+        cols = ["score", "stage", "label", "sources", "local", "category"]
         import pandas as pd
         with pd.option_context("display.width", 200, "display.max_colwidth", 60):
             print(clusters[cols].head(a.n).to_string(index=False))

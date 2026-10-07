@@ -95,8 +95,18 @@ def last_ok(con, source: str) -> datetime | None:
     return datetime.fromisoformat(row[0]) if row and row[0] else None
 
 
-def periods(con, source: str) -> set[str]:
-    return {r[0] for r in con.execute("SELECT DISTINCT period FROM snapshots WHERE source=?", (source,))}
+def periods(con, source: str, region: str | None = None) -> set[str]:
+    if region is None:
+        return {r[0] for r in con.execute("SELECT DISTINCT period FROM snapshots WHERE source=?", (source,))}
+    return {r[0] for r in con.execute("SELECT DISTINCT period FROM snapshots WHERE source=? AND region=?",
+                                      (source, region))}
+
+
+def periods_by_region(con, source: str) -> dict[str, set[str]]:
+    out: dict[str, set[str]] = {}
+    for region, period in con.execute("SELECT DISTINCT region, period FROM snapshots WHERE source=?", (source,)):
+        out.setdefault(region, set()).add(period)
+    return out
 
 
 def load(con, source: str | None = None, since_period: str | None = None) -> pd.DataFrame:
