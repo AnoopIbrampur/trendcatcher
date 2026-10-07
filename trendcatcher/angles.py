@@ -2,28 +2,79 @@
 
 The model's knowledge is older than the trend by definition, so the prompt carries the
 evidence we collected (platform, metrics, news headlines, Wikipedia title) and the model
-is told to say "unclear" rather than invent what a hashtag means.
+is told to say "unclear" rather than invent what a hashtag means. A bare hashtag gets a
+name-matched Wikipedia article as a hint when one clearly exists.
 """
 import json
-from functools import lru_cache
 from urllib.parse import quote
 
 import pandas as pd
 import requests
 
 from . import db, llm
-from .config import LLM_MODEL, USER_AGENT, location_name
+from .config import LLM_MODEL, location_name
+from .sources.base import session
 
 SUMMARY_URL = "https://en.wikipedia.org/api/rest_v1/page/summary/{}"
+SEARCH_URL = "https://en.wikipedia.org/w/api.php"
 
 
-@lru_cache(maxsize=512)
+_http = session()  # retries 429/5xx with backoff
+_summaries: dict[str, str] = {}
+_lookups: dict[str, tuple[str, str] | None] = {}
+
+
 def wiki_summary(article: str) -> str:
+    """Article intro. Only successful answers are cached, so a rate-limited call is retried next time."""
+    if article in _summaries:
+        return _summaries[article]
     try:
-        r = requests.get(SUMMARY_URL.format(quote(article, safe="")), headers={"User-Agent": USER_AGENT}, timeout=15)
-        return r.json().get("extract", "")[:400] if r.ok else ""
+        r = _http.get(SUMMARY_URL.format(quote(article, safe="")), timeout=15)
     except requests.RequestException:
         return ""
+    if r.status_code == 404:
+        _summaries[article] = ""
+    elif r.ok:
+        _summaries[article] = r.json().get("extract", "")[:400]
+    return _summaries.get(article, "")
+
+def name_match(query: str, title: str) -> bool:
+    """Accept a search hit only if it really names the same thing.
+
+    Every word of the query must appear in the title (minus any parenthetical), so
+    "balloon fiesta" matches "Albuquerque International Balloon Fiesta" but not
+    "Hot air balloon". A one-word query must equal the title, because single words
+    ("doggie", "pregnant") hit dictionary-style or unrelated articles.
+    """
+    from .cluster import tokens
+    q, t = tokens(query), tokens(title)
+    if not q or not q <= t:
+        return False
+    return len(q) >= 2 or q == t
+
+
+def wiki_lookup(query: str) -> tuple[str, str] | None:
+    """(title, summary) of the best Wikipedia article for a hashtag or search, if one clearly matches."""
+    if query in _lookups:
+        return _lookups[query]
+    try:
+        r = _http.get(SEARCH_URL, timeout=15, params={
+            "action": "query", "list": "search", "srsearch": query, "srlimit": 5, "format": "json", "srprop": ""})
+        r.raise_for_status()
+        hits = [h["title"] for h in r.json().get("query", {}).get("search", [])]
+    except (requests.RequestException, ValueError):
+        return None  # transient: don't cache
+    result = None
+    for title in hits:
+        if "(disambiguation)" in title or not name_match(query, title):
+            continue
+        summary = wiki_summary(title.replace(" ", "_"))
+        if summary and "may refer to" not in summary[:200]:
+            result = (title, summary)
+        break
+    _lookups[query] = result
+    return result
+
 
 PROMPT = """You help short-form video creators (Instagram Reels, TikTok, YouTube Shorts) decide
 whether to make a video about a trend. Use ONLY the evidence below plus the plain meaning
@@ -58,9 +109,10 @@ Return JSON with exactly these keys:
 }}"""
 
 
-def evidence_for(cluster_row: pd.Series, items: pd.DataFrame) -> str:
+def evidence_for(cluster_row: pd.Series, items: pd.DataFrame, lookup: bool = True) -> str:
     lines = []
-    for _, it in items[items["cluster"] == cluster_row["cluster"]].iterrows():
+    members = items[items["cluster"] == cluster_row["cluster"]]
+    for _, it in members.iterrows():
         d = it["detail"] or {}
         if it["source"] == "tiktok":
             lines.append(f"- TikTok hashtag {it['title']} (industry: {it['category']}; regions: {it['regions']}): "
@@ -82,7 +134,20 @@ def evidence_for(cluster_row: pd.Series, items: pd.DataFrame) -> str:
                 lines.append(f"    tags: {', '.join(d['tags'][:8])}")
         else:
             lines.append(f"- {it['source']}: {it['title']}")
-    return "\n".join(lines[:15])
+    # Nothing explains a bare hashtag or a search with no news: try to name it via Wikipedia.
+    explained = (members["source"] == "wikipedia").any() or any(
+        (d or {}).get("news") for d in members.loc[members["source"] == "google_trends", "detail"])
+    if lookup and not explained and len(members):
+        top = members.sort_values("score", ascending=False).iloc[0]
+        if top["source"] in ("tiktok", "google_trends"):
+            # the word-split text ("balloon fiesta") and the raw tag ("jimothy", which the splitter
+            # would turn into "jim othy") can each be the one that matches an article title
+            queries = dict.fromkeys([top["text"], str(top["title"]).lstrip("#")])
+            hit = next((h for q in queries if (h := wiki_lookup(q))), None)
+            if hit:
+                lines.append(f"- Possibly related Wikipedia article (matched by name only, may be a different "
+                             f"thing): '{hit[0]}': {hit[1]}")
+    return "\n".join(lines[:16])
 
 
 def brief(cluster_row: pd.Series, items: pd.DataFrame, con=None, refresh: bool = False,

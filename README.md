@@ -93,13 +93,14 @@ Reproduce: `python -m trendcatcher backtest --region US` (or `en`, `GB`, `IN`, `
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
-.venv/bin/python -m trendcatcher ingest            # fetch every source that's due
+.venv/bin/python -m trendcatcher sync              # pull cloud-collected data, rate new trends
+.venv/bin/python -m trendcatcher ingest            # or collect locally (only while the machine is awake)
 .venv/bin/python -m trendcatcher backfill-wiki --days 60
 .venv/bin/python -m trendcatcher top               # mixed feed in the terminal
 .venv/bin/python -m trendcatcher serve             # web app on http://localhost:8517
 .venv/bin/streamlit run trendcatcher/dashboard.py  # older Streamlit dashboard (same features)
 .venv/bin/python -m trendcatcher status            # collection health
-scripts/schedule.sh install                        # hourly launchd job (uninstall to remove)
+scripts/schedule.sh install                        # hourly launchd sync job (uninstall to remove)
 .venv/bin/python -m pytest
 ```
 
@@ -121,6 +122,18 @@ framework). The design follows Apple's interface guidelines:
 
 Every location has a shareable link (`/?location=US-NY`, `/?tab=health`).
 
+## Cloud collection
+
+A laptop that sleeps misses most hourly runs (in the first 21 hours, Google Trends ran 6
+times out of ~21). So collection runs in GitHub Actions (`.github/workflows/collect.yml`):
+- **The job:** every hour it runs whatever sources are due (Google hourly, YouTube every 3h,
+  TikTok every 6h, Wikipedia four times a day) and commits new files to the
+  [`data` branch](../../tree/data).
+- **The files:** one immutable gzipped JSONL file per capture, about 2.6 MB a day in total.
+- **Your machine:** `python -m trendcatcher sync` fetches only the latest state of that branch
+  and imports files it hasn't seen.
+- **API keys:** YouTube needs a `YOUTUBE_API_KEY` repository secret. Without it, that source is skipped.
+
 ## Design notes
 
 - **Scores are percentiles within each source**, so a TikTok score and a Wikipedia score
@@ -140,6 +153,25 @@ Every location has a shareable link (`/?location=US-NY`, `/?tab=health`).
   a hashtag means. It does this: `#digger` is tagged *Vehicle & Transportation* by TikTok,
   so it's probably excavator videos rather than the film, and the model flags the conflict
   instead of choosing one.
+- **Merge precision, measured:** all 89 merged pairs across 9 feeds were hand-labeled
+  ([docs/merge-audit.csv](docs/merge-audit.csv), one annotator). The audit found a real bug:
+  the English-only embedding model scores unrelated text in Indian scripts as near-identical
+  (0.98+), which merged 9 unrelated Gujarati, Telugu, Kannada and Marathi searches. With a
+  shared-word requirement and script-aware tokens, precision is **97.5%** "same or related
+  trend" (73.8% strictly the same story; the rest are the same franchise or event, such as
+  the 2026 and 2022 Quebec elections). The remaining errors are a generic Google search
+  ("kitchen") joining TikTok kitchen hashtags.
+- **Creator fit in the ranking:** attention isn't filmability; the hottest search of the hour
+  is often a live hockey score. The local model rates each trend 0–10 for creator fit plus
+  brand safety, ten per prompt and cached by label, and the rank score becomes
+  `attention × (0.5 + 0.05 × fit)`, with another 30% off for "avoid". The 9B model is used
+  because, on 20 real trends, the 2B model rated a mass shooter and minor news figures as
+  moderately filmable. Cards show the fit and explain the blend.
+- **Grounding bare hashtags:** a TikTok hashtag with no news or Wikipedia match gets a
+  name-matched Wikipedia article as a labeled hint (every word must appear in the title, and
+  one-word tags must match exactly). That fixed two wrong briefs: `#balloonfiesta` was read as
+  party decorations (it's the Albuquerque hot-air balloon festival), and `#jimothy` was
+  "unclear" (it's a viral Seattle raccoon).
 - **Bots:** Wikipedia articles with >90% desktop traffic are dropped (scrapers), as are
   calendar, year and "Deaths in" pages.
 
@@ -149,8 +181,10 @@ Every location has a shareable link (`/?location=US-NY`, `/?tab=health`).
   post-count growth can be used as a feature, and before the same backtest can be run on it.
 - The cross-platform "who saw it first" lag (TikTok → Reels) is the original thesis and
   isn't measurable yet. `first_seen` is recorded per source so it can be measured later.
-- Google Trends is dominated by live sports, which is low value for creators. The LLM
-  `creator_fit` score helps, but it is not used for ranking yet.
+- Creator-fit ratings come from a local model's judgment and haven't been validated against
+  real creator outcomes.
+- The data branch grows about 80 MB a month and will need pruning eventually. GitHub may also
+  pause scheduled workflows in a repo with no recent activity.
 - Hashtag ambiguity: TikTok's industry tag should be used as a merge constraint.
 
 ## License

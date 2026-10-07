@@ -116,6 +116,26 @@ of picking one. But with nothing to go on, it misread `#balloonfiesta` as party
 decorations: the hashtag is the hot-air balloon festival. TikTok-only hashtags need more
 grounding.
 
+## Measuring the merges
+
+"The merges look right" is a guess, so all 89 merged pairs across nine feeds were
+hand-labeled ([merge-audit.csv](merge-audit.csv)). It found a bug none of the spot checks had:
+the embedding model is English-only, and it scores *any* two pieces of text in Indian
+scripts as near-identical. A Gujarati politician's name had absorbed eight unrelated
+searches in Telugu, Kannada, Malayalam and Marathi. Requiring at least one shared word (and
+tokenizing those scripts without splitting words at vowel signs) removed all nine.
+Precision went from 87.6% to **97.5%** "same or related trend".
+
+## Fixing the briefs
+
+Both brief failures above came from hashtags with nothing to explain them. A TikTok hashtag
+with no news and no Wikipedia match now gets a name-matched Wikipedia article as a
+clearly labeled hint. Every word must appear in the article title, so "balloon fiesta"
+finds *Albuquerque International Balloon Fiesta*, but a generic tag like `#doggie` finds
+nothing. Regenerated, `#balloonfiesta` became "a travel event in Albuquerque featuring
+hundreds of hot air balloons", and `#jimothy` went from "unclear" to "a viral wild raccoon
+in Seattle".
+
 ## What's next
 
 - **Backtest TikTok.** Its scoring is still a heuristic. It needs a few weeks of collected
@@ -132,3 +152,5 @@ grounding.
    most of the work, and it beat the hand-tuned scoring.
 3. **In a recommender that rates brand safety, a false merge is a bigger problem than a
    missed one.**
+4. **Measure the thing you're confident about.** The merges looked fine in every spot check;
+   a full audit found 9 errors from one blind spot in the embedding model.

@@ -4,7 +4,7 @@ Short strings fool embeddings ("jane doe" vs "John Doe" scores 0.90), so a merge
 both semantic similarity (recall) and real token overlap (precision):
 
     merge  <=>  compact strings equal
-            or  cos >= HARD_COS
+            or  (cos >= HARD_COS and at least one shared word)
             or  (cos >= SOFT_COS and token Jaccard >= MIN_JACCARD)
 
 Clustering is greedy against each cluster's seed, highest score first, so a strong
@@ -30,8 +30,13 @@ STOP = {"vs", "v", "the", "of", "a", "an", "and", "in", "on", "for", "to", "de",
 
 def tokens(text: str) -> set[str]:
     text = re.sub(r"\([^)]*\)", " ", text)  # "Digger (2026 film)" -> "Digger"
-    text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode() or text
-    return {t for t in re.findall(r"\w+", text.lower()) if t not in STOP}
+    ascii_text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
+    if re.search(r"[A-Za-z0-9]", ascii_text):
+        return {t for t in re.findall(r"\w+", ascii_text.lower()) if t not in STOP}
+    # Non-Latin scripts: \w stops at vowel signs (Telugu "నిరసన" -> "న", "రసన"), so unrelated
+    # words would share fragments. Split on whitespace and punctuation instead.
+    words = (w.strip("".join({c for c in w if unicodedata.category(c)[0] in "PS"})) for w in text.lower().split())
+    return {w for w in words if w and w not in STOP}
 
 
 def compact(text: str) -> str:
@@ -47,7 +52,9 @@ def should_merge(cos: float, ta: set, tb: set, ca: str, cb: str, long_title: boo
     if ca and ca == cb:
         return True
     contained = bool(ta and tb) and (ta <= tb or tb <= ta)
-    if cos >= HARD_COS or (cos >= SOFT_COS and contained and jaccard(ta, tb) >= MIN_JACCARD):
+    # Even near-identical vectors need a shared word: the embedding model is English-only and
+    # maps text in other scripts (Gujarati, Telugu, ...) to almost the same vector.
+    if (cos >= HARD_COS and ta & tb) or (cos >= SOFT_COS and contained and jaccard(ta, tb) >= MIN_JACCARD):
         return True
     small = ta if len(ta) <= len(tb) else tb
     phrase = len(small) >= 2 and any(not t.isdigit() and len(t) >= 3 for t in small)

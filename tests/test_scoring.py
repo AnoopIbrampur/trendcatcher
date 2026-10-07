@@ -33,6 +33,20 @@ def test_merge_rule_precision():
     assert not cluster.should_merge(0.92, t("2026 Quebec general election"), t("2026 Spanish general election"), "a", "b")
 
 
+def test_non_latin_scripts_need_shared_words():
+    t = cluster.tokens
+    # nomic-embed-text scores unrelated Gujarati and Telugu text ~0.99; that alone must not merge
+    assert not cluster.should_merge(0.995, t("શંકરસિંહ વાઘેલા"), t("విరాట్ కోహ్లి"), "a", "b")
+    assert cluster.should_merge(0.995, t("usa vs namibia"), t("namibia vs usa"), "usavsnamibia", "namibiavsusa")
+
+
+def test_tokens_keep_non_latin_words_whole():
+    # \w splits Telugu at vowel signs; unrelated words must not share fragments
+    assert cluster.tokens("నిరసన") == {"నిరసన"} and cluster.tokens("ఫ్యాన్") == {"ఫ్యాన్"}
+    assert cluster.tokens("विराट कोहली!") == {"विराट", "कोहली"}
+    assert cluster.tokens("Spider-Man: Brand New Day") == {"spider", "man", "brand", "new", "day"}
+
+
 def test_phrase_inside_long_title():
     t = cluster.tokens
     title = "JAILER 2 - Official Trailer | Superstar Rajinikanth | Sun Pictures"

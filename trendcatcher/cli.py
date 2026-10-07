@@ -34,8 +34,12 @@ def main(argv=None) -> int:
     g.add_argument("--sources", nargs="+")
     g.add_argument("--auto", action="store_true", help="run whatever is due this UTC hour")
 
-    s = sub.add_parser("sync", help="pull the cloud data branch and import new files")
+    s = sub.add_parser("sync", help="pull the cloud data branch, import new files, rate new trends")
     s.add_argument("--no-pull", action="store_true", help="import the local store copy without fetching")
+    s.add_argument("--no-fit", action="store_true", help="skip creator-fit rating")
+
+    s = sub.add_parser("fit", help="rate creator fit for the top trends (local LLM)")
+    s.add_argument("--top", type=int, default=40, help="per location")
 
     s = sub.add_parser("seed-store", help="one-off: export the local database into a store directory")
     s.add_argument("--store", required=True)
@@ -85,6 +89,12 @@ def main(argv=None) -> int:
         from .cloud import sync
         r = sync(pull=not a.no_pull)
         print(f"imported {r['files']} files ({r['rows']} rows) and {r['runs']} run records")
+        if not a.no_fit:
+            from .fit import rate_all
+            print(f"rated {rate_all()} new trends for creator fit")
+    elif a.cmd == "fit":
+        from .fit import rate_all
+        print(f"rated {rate_all(top=a.top)} new trends for creator fit")
     elif a.cmd == "seed-store":
         from pathlib import Path
         from . import db

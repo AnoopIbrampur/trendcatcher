@@ -79,10 +79,12 @@ def score_all(con, location: str | None = None) -> pd.DataFrame:
 
 def build(con=None, cluster: bool = True, min_score: float = 0.0,
           location: str | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
+    from . import fit
     con = con or db.connect()
     items = score_all(con, location)
     items = items[items["score"] >= min_score]
-    return cluster_items(items, con, use_embeddings=cluster)
+    clusters, items = cluster_items(items, con, use_embeddings=cluster)
+    return fit.apply(clusters, fit.load(con)), items
 
 
 def mixed_feed(clusters: pd.DataFrame, n: int | None = None) -> pd.DataFrame:

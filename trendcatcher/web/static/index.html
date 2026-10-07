@@ -256,6 +256,12 @@ h1 {
 .badge.peaking { background: var(--orange-soft); color: var(--orange); }
 .badge.fading, .badge.unknown { background: var(--gray-soft); color: var(--text-2); }
 .badge.local { background: var(--accent-soft); color: var(--accent); }
+.badge.fit { background: var(--surface-2); color: var(--text-2); font-variant-numeric: tabular-nums; }
+.badge.fit.hi { color: var(--green); }
+.badge.fit.lo { color: var(--text-3); }
+.badge.avoid-flag { background: var(--red-soft); color: var(--red); }
+.rank-note { font-size: 12px; color: var(--text-3); margin: -2px 0 12px; line-height: 1.45; }
+.rank-note b { color: var(--text-2); font-weight: 600; font-variant-numeric: tabular-nums; }
 .badge.cat { background: transparent; color: var(--text-3); font-weight: 500; padding: 0 2px; }
 .srcs { display: inline-flex; gap: 4px; }
 .glyph { display: inline-grid; place-items: center; width: 21px; height: 21px; border-radius: 6px; background: var(--surface-2); }
@@ -848,6 +854,8 @@ function cardHead(t, i) {
       <div class="meta">
         <span class="badge ${esc(t.stage)}">${esc(t.stage[0].toUpperCase() + t.stage.slice(1))}</span>
         ${t.local ? `<span class="badge local">Local</span>` : ""}
+        ${t.safety === "avoid" ? `<span class="badge avoid-flag" title="Rated brand-unsafe">Avoid</span>` : ""}
+        ${t.fit != null ? `<span class="badge fit ${t.fit >= 7 ? "hi" : t.fit <= 3 ? "lo" : ""}" title="Creator fit, rated by the local model">Fit ${Math.round(t.fit)}</span>` : ""}
         <span class="srcs">${srcs.map(glyph).join("")}</span>
         ${t.sources.length > 1 ? `<span class="badge cat">${t.sources.length} platforms</span>` : ""}
         ${cats ? `<span class="badge cat">${esc(cats)}</span>` : ""}
@@ -1000,7 +1008,10 @@ function renderDetail(t) {
   const more = Object.entries(hidden).map(([src, ms]) =>
     `<div class="more"><button class="btn-plain pressable show-more" data-src="${esc(src)}">Show ${ms.length} more from ${esc(SOURCE_NAME[src] || src)}</button>
       <div class="more-items" hidden>${ms.map(renderSignal).join("")}</div></div>`).join("");
-  return `<div class="panel signals"><h3>Signals</h3>${shown.map(renderSignal).join("")}${more}</div>
+  const note = t.base_score != null && t.fit != null
+    ? `<p class="rank-note">Attention <b>${Math.round(t.base_score)}</b> × creator fit <b>${Math.round(t.fit)}/10</b>${t.safety === "avoid" ? " × brand-safety penalty" : ""} → ranked at <b>${Math.round(t.score)}</b></p>`
+    : t.base_score != null ? `<p class="rank-note">Attention <b>${Math.round(t.base_score)}</b> · creator fit not rated yet</p>` : "";
+  return `<div class="panel signals"><h3>Signals</h3>${note}${shown.map(renderSignal).join("")}${more}</div>
     <div class="panel brief" aria-live="polite"><h3>Video brief</h3><div class="brief-slot"></div></div>`;
 }
 

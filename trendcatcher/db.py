@@ -59,7 +59,12 @@ def utcnow() -> str:
 def connect(path: Path | str = DB_PATH) -> sqlite3.Connection:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    con = sqlite3.connect(path)
+    con = sqlite3.connect(path, timeout=30)
+    # WAL lets the web app read while the hourly sync/rating job writes
+    try:
+        con.execute("PRAGMA journal_mode=WAL")  # persistent once set; can fail while another process writes
+    except sqlite3.OperationalError:
+        pass
     con.executescript(SCHEMA)
     return con
 
