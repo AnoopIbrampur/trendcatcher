@@ -1,5 +1,8 @@
 # Trend Catcher
 
+[![tests](https://github.com/AnoopIbrampur/trendcatcher/actions/workflows/tests.yml/badge.svg)](https://github.com/AnoopIbrampur/trendcatcher/actions/workflows/tests.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Finds topics that are taking off across TikTok, YouTube, Google search and Wikipedia early enough
 for a short-form creator (Reels / TikTok / Shorts) to still post about them, and turns
 each one into a brief: what it is, whether it's brand-safe, and three video angles.
@@ -128,3 +131,7 @@ Every location has a shareable link (`/?location=US-NY`, `/?tab=health`).
 - Google Trends is dominated by live sports, which is low value for creators. The LLM
   `creator_fit` score helps, but it is not used for ranking yet.
 - Hashtag ambiguity: TikTok's industry tag should be used as a merge constraint.
+
+## License
+
+MIT, see [LICENSE](LICENSE).

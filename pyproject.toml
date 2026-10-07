@@ -3,6 +3,7 @@ name = "trendcatcher"
 version = "0.1.0"
 description = "Find rising cross-platform trends early enough for creators to act on them."
 requires-python = ">=3.11"
+license = "MIT"
 dependencies = ["requests", "pandas", "scikit-learn", "streamlit", "wordninja", "fastapi", "uvicorn[standard]"]
 
 [project.optional-dependencies]
