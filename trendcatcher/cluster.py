@@ -94,6 +94,10 @@ def assign(items: pd.DataFrame, vecs: np.ndarray | None) -> np.ndarray:
     return labels
 
 
+SUMMARY_COLS = ["cluster", "cluster_key", "primary", "label", "score", "stage", "sources", "n_sources", "n_items",
+                "category", "led_by", "local", "members"]
+
+
 def summarize(items: pd.DataFrame, cross_bonus: float = 8.0) -> pd.DataFrame:
     rows = []
     for cid, g in items.groupby("cluster"):
@@ -116,6 +120,8 @@ def summarize(items: pd.DataFrame, cross_bonus: float = 8.0) -> pd.DataFrame:
             "local": bool(g["local"].fillna(False).any()) if "local" in g else False,
             "members": g["title"].tolist(),
         })
+    if not rows:
+        return pd.DataFrame(columns=SUMMARY_COLS)
     return pd.DataFrame(rows).sort_values(["score", "n_sources"], ascending=False).reset_index(drop=True)
 
 

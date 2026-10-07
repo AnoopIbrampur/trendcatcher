@@ -143,3 +143,10 @@ def test_region_snaps_global_excludes_states_and_country_wiki():
     w = pd.DataFrame({"region": ["en", "US"], "key": ["global", "us"]})
     assert region_snaps("wikipedia", w, None)["key"].tolist() == ["global"]
     assert region_snaps("wikipedia", w, "US")["key"].tolist() == ["us"]
+
+
+def test_cluster_empty_input_keeps_columns():
+    items = pd.DataFrame(columns=["source", "key", "title", "text", "score", "stage", "category", "first_seen", "local"])
+    summary, _ = cluster.cluster(items, None, use_embeddings=False)
+    assert summary.empty and {"local", "score", "primary"} <= set(summary.columns)
+    assert mixed_feed(summary).empty

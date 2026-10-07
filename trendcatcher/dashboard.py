@@ -43,6 +43,8 @@ if location:
 elif "location" in st.query_params:
     del st.query_params["location"]
 clusters, items = load(location)
+if "local" not in clusters:  # never crash on results built by an older version
+    clusters = clusters.assign(local=False)
 st.caption("Rising topics across TikTok, YouTube, Google search and Wikipedia, ranked by how likely they are to stay hot long enough to post about.")
 
 tab_feed, tab_health = st.tabs(["Feed", "Collection health"])
