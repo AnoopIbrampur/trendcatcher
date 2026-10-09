@@ -19,3 +19,5 @@
 {"id": "b1d948b33a18490ebac4d1a9ccffaf5c", "source": "wikipedia", "started_at": "2026-10-09T09:09:18+00:00", "status": "ok", "n_items": 3598, "message": ""}
 {"id": "919501a772a1433a87f92bf1c64d6608", "source": "youtube", "started_at": "2026-10-09T09:09:28+00:00", "status": "skipped", "n_items": 0, "message": "YOUTUBE_API_KEY not set"}
 {"id": "bd1ee657864f4f9786e2f2ffe338f2a5", "source": "reddit", "started_at": "2026-10-09T09:09:28+00:00", "status": "skipped", "n_items": 0, "message": "REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET not set"}
+{"id": "b664c709fd4642cd81d770a370f0308b", "source": "google_trends", "started_at": "2026-10-09T16:15:39+00:00", "status": "ok", "n_items": 493, "message": ""}
+{"id": "c7e460efe9f94eaca2e18ba48872de50", "source": "reddit", "started_at": "2026-10-09T16:16:08+00:00", "status": "skipped", "n_items": 0, "message": "REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET not set"}
