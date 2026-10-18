@@ -133,3 +133,7 @@
 {"id": "8d2564d9ea784155990cf17269927069", "source": "reddit", "started_at": "2026-10-18T11:10:52+00:00", "status": "skipped", "n_items": 0, "message": "REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET not set"}
 {"id": "ffc67ff39ece4de99096eed784f90c04", "source": "google_trends", "started_at": "2026-10-18T14:36:51+00:00", "status": "ok", "n_items": 545, "message": ""}
 {"id": "ced036e0b44646579a1823de2ceaf714", "source": "reddit", "started_at": "2026-10-18T14:37:23+00:00", "status": "skipped", "n_items": 0, "message": "REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET not set"}
+{"id": "b308eb9b4972420aa7fad84515c5abc7", "source": "tiktok", "started_at": "2026-10-18T18:08:49+00:00", "status": "ok", "n_items": 192, "message": ""}
+{"id": "137754adb99c4ed89afda97516ed7b76", "source": "google_trends", "started_at": "2026-10-18T18:09:46+00:00", "status": "ok", "n_items": 552, "message": ""}
+{"id": "2642df9f1e724a8f9ba948225b5169a7", "source": "youtube", "started_at": "2026-10-18T18:10:19+00:00", "status": "skipped", "n_items": 0, "message": "YOUTUBE_API_KEY not set"}
+{"id": "098f4052a64b452699923bd10e004fe7", "source": "reddit", "started_at": "2026-10-18T18:10:19+00:00", "status": "skipped", "n_items": 0, "message": "REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET not set"}
