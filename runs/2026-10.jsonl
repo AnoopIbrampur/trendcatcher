@@ -173,3 +173,7 @@
 {"id": "83717abe78e346cb9c802bd130875fa9", "source": "reddit", "started_at": "2026-10-21T04:53:10+00:00", "status": "skipped", "n_items": 0, "message": "REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET not set"}
 {"id": "c772361870ff4b6bb0629c2cef95a9e4", "source": "google_trends", "started_at": "2026-10-21T10:12:45+00:00", "status": "ok", "n_items": 518, "message": ""}
 {"id": "dde855602afd4e11a03f7ed17f686dee", "source": "reddit", "started_at": "2026-10-21T10:13:14+00:00", "status": "skipped", "n_items": 0, "message": "REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET not set"}
+{"id": "929076ead08140a8b6c2c540dc3817da", "source": "google_trends", "started_at": "2026-10-21T15:18:45+00:00", "status": "ok", "n_items": 519, "message": ""}
+{"id": "8df4317844204786acb977b1b8a9aba8", "source": "wikipedia", "started_at": "2026-10-21T15:19:15+00:00", "status": "error", "n_items": 0, "message": "HTTPSConnectionPool(host='wikimedia.org', port=443): Max retries exceeded with url: /api/rest_v1/metrics/pageviews/top/en.wikipedia/desktop/2026/10/19 (Caused by ResponseError('too many 429 error responses'))"}
+{"id": "4e72bdb9290b4edaad5c926d9c483cc0", "source": "youtube", "started_at": "2026-10-21T15:20:16+00:00", "status": "skipped", "n_items": 0, "message": "YOUTUBE_API_KEY not set"}
+{"id": "095f5caddb3d4b9cab4a6258fe0d284b", "source": "reddit", "started_at": "2026-10-21T15:20:16+00:00", "status": "skipped", "n_items": 0, "message": "REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET not set"}
