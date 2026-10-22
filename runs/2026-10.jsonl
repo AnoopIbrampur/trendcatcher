@@ -191,3 +191,5 @@
 {"id": "df18f0f4e410429491563e729b612e45", "source": "reddit", "started_at": "2026-10-22T15:23:11+00:00", "status": "skipped", "n_items": 0, "message": "REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET not set"}
 {"id": "fbd80732d3114acc8ffcd85f6f77f376", "source": "google_trends", "started_at": "2026-10-22T20:09:30+00:00", "status": "ok", "n_items": 483, "message": ""}
 {"id": "1ba9edf97c2748d4aa3cb103ca0f4d3f", "source": "reddit", "started_at": "2026-10-22T20:10:03+00:00", "status": "skipped", "n_items": 0, "message": "REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET not set"}
+{"id": "015ff0ae987d462fb2d4017753db80d2", "source": "google_trends", "started_at": "2026-10-22T23:25:04+00:00", "status": "ok", "n_items": 496, "message": ""}
+{"id": "1267ad7b59b941be948a4e3bbe127d01", "source": "reddit", "started_at": "2026-10-22T23:25:32+00:00", "status": "skipped", "n_items": 0, "message": "REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET not set"}
