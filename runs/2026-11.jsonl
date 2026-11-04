@@ -30,3 +30,5 @@
 {"id": "21249893b9394a9f9d670a14c4b6894b", "source": "wikipedia", "started_at": "2026-11-03T21:02:42+00:00", "status": "ok", "n_items": 0, "message": ""}
 {"id": "fe76b5a0fcc34d7c8aee4623c45877e9", "source": "youtube", "started_at": "2026-11-03T21:02:42+00:00", "status": "skipped", "n_items": 0, "message": "YOUTUBE_API_KEY not set"}
 {"id": "febb160e070e4695afb7d3a239d19c02", "source": "reddit", "started_at": "2026-11-03T21:02:42+00:00", "status": "skipped", "n_items": 0, "message": "REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET not set"}
+{"id": "fea98a4680e54d9db2a286f460211750", "source": "google_trends", "started_at": "2026-11-04T01:25:13+00:00", "status": "ok", "n_items": 552, "message": ""}
+{"id": "c87122736da94cb7a921794cb90add6d", "source": "reddit", "started_at": "2026-11-04T01:25:51+00:00", "status": "skipped", "n_items": 0, "message": "REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET not set"}
