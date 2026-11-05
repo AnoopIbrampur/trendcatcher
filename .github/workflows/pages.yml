@@ -1,0 +1,53 @@
+name: pages
+
+# Rebuilds the hosted web app (GitHub Pages) after each hourly collection run, from the
+# `data` branch. The site is static: `export-site` writes every location's feed as JSON
+# next to the front end. One-time setup: Settings -> Pages -> Source: GitHub Actions.
+on:
+  workflow_run:
+    workflows: [collect]
+    types: [completed]
+  push:
+    branches: [main]
+    paths: ["trendcatcher/**", ".github/workflows/pages.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: data
+          path: store
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      # scoring + the API payloads; the UI and LLM extras aren't needed to build the site
+      - run: pip install requests pandas scikit-learn wordninja fastapi && pip install -e . --no-deps
+      - run: python -m trendcatcher export-site --store store --out _site
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

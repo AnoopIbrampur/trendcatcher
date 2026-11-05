@@ -9,6 +9,10 @@ each one into a brief: what it is, whether it's brand-safe, and three video angl
 
 ![Demo: filtering the feed, opening a trend with its video brief, and switching to New York's local trends](docs/demo.gif)
 
+**[Open the live demo →](https://anoopibrampur.github.io/trendcatcher/)** Rebuilt every hour
+from the data GitHub Actions collects. Briefs and creator-fit ratings need a local model, so
+they're off in the hosted copy.
+
 **[Read the case study →](docs/case-study.md)** How a backtest showed the first scorer was
 answering the wrong question, and what fixed it.
 
@@ -133,6 +137,11 @@ times out of ~21). So collection runs in GitHub Actions (`.github/workflows/coll
 - **Your machine:** `python -m trendcatcher sync` fetches only the latest state of that branch
   and imports files it hasn't seen.
 - **API keys:** YouTube needs a `YOUTUBE_API_KEY` repository secret. Without it, that source is skipped.
+- **Hosted demo:** after each collection run, `.github/workflows/pages.yml` runs
+  `python -m trendcatcher export-site`, which builds every location's feed and writes the API
+  responses as static JSON next to the front end, then deploys it to GitHub Pages. The front
+  end reads those files when `window.TC_STATIC` is set. One-time setup: Settings → Pages →
+  Source: GitHub Actions.
 
 ## Design notes
 

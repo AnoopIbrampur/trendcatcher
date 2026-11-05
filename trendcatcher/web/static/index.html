@@ -545,7 +545,26 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem("tc:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem("tc:" + k, JSON.stringify(v)); } catch {} },
 };
+/* Hosted copy (GitHub Pages): no server, so /api/* reads the JSON files written by
+   `python -m trendcatcher export-site`. Briefs need the local model and are off. */
+const STATIC = window.TC_STATIC || null;
+async function staticApi(path, opts) {
+  const url = new URL(path, location.href), method = (opts.method || "GET").toUpperCase();
+  if (url.pathname === "/api/brief") {
+    if (method === "POST") throw new Error("Video briefs run on a local model, so they're off in this hosted demo.");
+    return { brief: null };
+  }
+  if (url.pathname === "/api/refresh") return { ok: true };
+  const file = url.pathname === "/api/trends" ? `data/trends/${url.searchParams.get("location") || "global"}.json`
+    : url.pathname === "/api/health" ? "data/health.json"
+    : url.pathname === "/api/locations" ? "data/locations.json" : null;
+  if (!file) throw new Error("Not available in the hosted demo");
+  const r = await fetch(file, { cache: "no-cache" });
+  if (!r.ok) throw new Error(r.status === 404 ? "No data for this place yet" : `Request failed (${r.status})`);
+  return r.json();
+}
 async function api(path, opts = {}) {
+  if (STATIC) return staticApi(path, opts);
   const r = await fetch(path, { headers: { "content-type": "application/json" }, ...opts });
   const body = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(body.detail || `Request failed (${r.status})`);
@@ -876,9 +895,14 @@ function renderFeed() {
     `<div class="stat"><b>${d.count}</b><span>trends</span></div>` +
     (d.location ? `<div class="stat"><b>${d.local_count}</b><span>local</span></div>` : `<div class="stat"><b>${cross}</b><span>cross-platform</span></div>`) +
     `<div class="stat"><b>${nSrc}</b><span>sources</span></div>`;
-  $("#notice").innerHTML = d.state_view
+  $("#notice").innerHTML = (STATIC
+    ? `<div class="notice">${ICON.info}<div><b>Hosted demo, rebuilt every hour</b> from data GitHub Actions collects (last built ${esc(ago(STATIC.builtAt))}).
+       Video briefs, creator-fit ratings and embedding-based merging need a local model, so they're off here.
+       <a href="${esc(STATIC.repo)}" target="_blank" rel="noopener">Code</a> ·
+       <a href="${esc(STATIC.repo)}/blob/main/docs/case-study.md" target="_blank" rel="noopener">Case study</a></div></div>`
+    : "") + (d.state_view
     ? `<div class="notice">${ICON.info}<div>Only Google Search has state-level data. TikTok, YouTube and Wikipedia show <b>United States</b> trends here, and <b>Local</b> marks searches specific to ${esc(d.location_name.split(",")[0])}.</div></div>`
-    : "";
+    : "");
   localSwitch.disabled = !d.location;
   if (!d.location) { state.filters.localOnly = false; }
   localSwitch.setAttribute("aria-checked", String(state.filters.localOnly));
@@ -1017,6 +1041,8 @@ function renderDetail(t) {
 
 /* ---- briefs */
 function briefEmpty(el) {
+  if (STATIC) return `<div class="brief-empty"><span>Briefs run on a local model (Ollama), so they're off in this hosted demo.
+    <a href="${esc(STATIC.repo)}#run-it" target="_blank" rel="noopener">Run it locally</a> to generate them.</span></div>`;
   const ok = state.data.ollama;
   return `<div class="brief-empty"><span>${ok ? "Get what this trend is, whether it's brand-safe, and three hooks to film. Runs on your local model, about 20 seconds."
     : "Start Ollama to generate briefs. They run entirely on your Mac."}</span>
@@ -1094,7 +1120,7 @@ $("#refreshBtn").addEventListener("click", async () => {
   try {
     await api(`/api/refresh${state.location ? `?location=${encodeURIComponent(state.location)}` : ""}`, { method: "POST" });
     if (state.tab === "feed") await loadFeed(); else await loadHealth();
-    toast("Feed rebuilt from the latest data");
+    toast(STATIC ? "Reloaded. The hosted feed is rebuilt every hour." : "Feed rebuilt from the latest data");
   } catch (e) { toast(e.message); } finally { b.classList.remove("spinning"); }
 });
 
@@ -1107,7 +1133,7 @@ async function loadHealth() {
     const srcs = [...h.sources].sort((a, b) => SOURCE_ORDER.indexOf(a.source) - SOURCE_ORDER.indexOf(b.source));
     const okCount = srcs.filter((s) => s.status === "ok").length;
     v.innerHTML = `<div class="hero"><div><div class="eyebrow">Collection</div><h1>Health</h1>
-      <div class="sub"><strong>${okCount}</strong> of ${srcs.length} sources collecting · local model ${h.ollama ? "<strong>online</strong>" : "offline"}</div></div></div>
+      <div class="sub"><strong>${okCount}</strong> of ${srcs.length} sources collecting · ${STATIC ? "collected hourly by GitHub Actions" : `local model ${h.ollama ? "<strong>online</strong>" : "offline"}`}</div></div></div>
       <div class="health-grid">${srcs.map((s) => {
         const st = s.status || "none";
         const label = { ok: "Collecting", skipped: "Skipped", error: "Error", none: "No runs yet" }[st] || st;

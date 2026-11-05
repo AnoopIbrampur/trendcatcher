@@ -44,6 +44,11 @@ def main(argv=None) -> int:
     s = sub.add_parser("seed-store", help="one-off: export the local database into a store directory")
     s.add_argument("--store", required=True)
 
+    s = sub.add_parser("export-site", help="build the static web app from a cloud store (for GitHub Pages)")
+    s.add_argument("--store", required=True, help="checkout of the data branch")
+    s.add_argument("--out", default="_site")
+    s.add_argument("--locations", nargs="*", help="location codes ('global' for worldwide); default all")
+
     s = sub.add_parser("serve", help="run the web app")
     s.add_argument("--port", type=int, default=8517)
     s.add_argument("--host", default="127.0.0.1")
@@ -100,6 +105,12 @@ def main(argv=None) -> int:
         from . import db
         from .cloud import seed
         print(f"wrote {seed(db.connect(), Path(a.store))} files")
+    elif a.cmd == "export-site":
+        from pathlib import Path
+        from .web.export import export_site
+        locs = None if a.locations is None else [None if x == "global" else x for x in a.locations]
+        r = export_site(Path(a.store), Path(a.out), locations=locs)
+        print(f"built {r['locations']} locations, {r['trends']} trends, from {r['files']} snapshot files -> {a.out}")
     elif a.cmd == "serve":
         import uvicorn
         print(f"Trend Catcher on http://{a.host}:{a.port}")

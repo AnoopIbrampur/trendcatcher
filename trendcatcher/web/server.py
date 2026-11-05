@@ -79,6 +79,10 @@ def index():
 
 @app.get("/api/locations")
 def locations():
+    return locations_payload()
+
+
+def locations_payload() -> dict:
     return {
         "groups": [
             {"name": "Worldwide", "items": [{"code": None, "name": "Global"}]},
@@ -93,8 +97,13 @@ def locations():
 def trends(location: str | None = None):
     loc = norm_location(location)
     clusters, items = feed(loc)
+    return trends_payload(clusters, items, loc, _briefed_keys(), llm.available())
+
+
+def trends_payload(clusters: pd.DataFrame, items: pd.DataFrame, loc: str | None,
+                   briefed: set[str], ollama: bool) -> dict:
+    """The /api/trends response body. Shared with the static site export (web/export.py)."""
     out = []
-    briefed = _briefed_keys()
     for _, c in clusters.iterrows():
         members = items[items["cluster"] == c["cluster"]]
         out.append({
@@ -116,7 +125,7 @@ def trends(location: str | None = None):
         "location": loc,
         "location_name": location_name(loc),
         "state_view": bool(loc and loc.startswith("US-")),
-        "ollama": llm.available(),
+        "ollama": ollama,
         "count": len(out),
         "local_count": int(clusters["local"].sum()) if len(clusters) else 0,
         "trends": out,
@@ -167,7 +176,11 @@ def post_brief(req: BriefRequest):
 
 @app.get("/api/health")
 def health():
-    con = db.connect()
+    return health_payload(db.connect(), llm.available())
+
+
+def health_payload(con, ollama: bool) -> dict:
+    """The /api/health response body. Shared with the static site export (web/export.py)."""
     runs = db.runs(con, 60)
     hist = pd.read_sql_query(
         "SELECT source, COUNT(*) AS rows, COUNT(DISTINCT period) AS days, COUNT(DISTINCT region) AS regions,"
@@ -179,7 +192,7 @@ def health():
         " LEFT JOIN (SELECT source, MAX(started_at) AS last_ok FROM runs WHERE status = 'ok' GROUP BY source) ok"
         " ON ok.source = r.source", con)
     return clean({
-        "ollama": llm.available(),
+        "ollama": ollama,
         "sources": hist.merge(latest, on="source", how="outer").to_dict("records"),
         "runs": runs[["source", "started_at", "status", "n_items", "message"]].to_dict("records"),
     })
