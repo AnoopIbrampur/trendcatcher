@@ -78,3 +78,5 @@
 {"id": "90e07e456be34c7f96b48d2070f761aa", "source": "reddit", "started_at": "2026-11-08T15:17:03+00:00", "status": "skipped", "n_items": 0, "message": "REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET not set"}
 {"id": "82e4c2e96acf4ea39855520ac201e064", "source": "google_trends", "started_at": "2026-11-08T19:45:00+00:00", "status": "ok", "n_items": 549, "message": ""}
 {"id": "3c21661e82e4407bb5b7135f7b611ad0", "source": "reddit", "started_at": "2026-11-08T19:45:31+00:00", "status": "skipped", "n_items": 0, "message": "REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET not set"}
+{"id": "ac5bc6ed94b047acba086a067b8932dc", "source": "google_trends", "started_at": "2026-11-08T23:45:32+00:00", "status": "ok", "n_items": 555, "message": ""}
+{"id": "832a26073eaf496eb86eb1a1e3c2eb7f", "source": "reddit", "started_at": "2026-11-08T23:45:59+00:00", "status": "skipped", "n_items": 0, "message": "REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET not set"}
